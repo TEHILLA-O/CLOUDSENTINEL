@@ -32,7 +32,9 @@ kubectl kustomize kubernetes/base
 kubectl kustomize kubernetes/overlays/local
 ```
 
-`kubectl kustomize` is covered by `tests/kubernetes`. On 19 October 2026 the Docker engine was not running, so `kind create cluster` and `docker compose up` were not executed. Manifest validation is not a running cluster.
+`kubectl kustomize` is covered by `tests/kubernetes`.
+
+On 19 October 2026 a kind cluster named `cloudsentinel` was created after Docker Desktop was started. The four local images were loaded and `kubectl apply -k kubernetes/overlays/local` brought up analysis (both stand-ins), the control plane, the gateway, and Postgres; all five pods reached Ready. Deleting `analysis-azure-667576c665-64l7v` produced replacement `analysis-azure-667576c665-rsf8v`, which became Ready and returned HTTP 200 from `/health/live`. The control plane was already probing both analysis Services inside the cluster. kind's default CNI still does not enforce NetworkPolicy. `docker compose up` was not part of that run.
 
 ## Terraform
 

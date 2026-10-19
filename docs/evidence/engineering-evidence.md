@@ -10,11 +10,11 @@ Recorded on 19 October 2026 from this machine. Figures below are outputs of comm
 | Health probes, thresholds, cooldown, incidents, automatic recovery | Implemented and locally tested |
 | Gateway as the data plane | Implemented. Not DNS failover |
 | Kustomize manifests for local, AKS, and GKE | Implemented. `kubectl kustomize` tested |
-| kind cluster, pod restart, Docker Compose | Not run. The Docker engine was not running |
-| Terraform for AKS and GKE | Implemented. `fmt` and `validate` succeeded. Not applied |
-| Azure or GCP deployment | Not deployed. Not cloud-verified |
-| CI workflows | Implemented in `.github/workflows`. Not executed on GitHub from this machine |
-| pip-audit, Trivy, npm audit, Checkov | Defined in CI. Not executed locally |
+| kind cluster and pod restart | Locally tested. Docker Compose was not run |
+| Terraform for AKS and GKE | Implemented. `fmt` and `validate` succeeded. `plan` stops without `subscription_id` or `project_id`. Not applied |
+| Azure or GCP deployment | Not deployed. Not cloud-verified. No Azure CLI login and no gcloud config on this machine |
+| CI on the first push | backend, frontend, kubernetes, and terraform succeeded. images and dependency-scan failed; the causes are fixed in the working tree |
+| pip-audit, Trivy, npm audit | Run locally. No known Python vulnerabilities, no unfixed critical image findings, npm audit clean after the dashboard upgrade |
 
 ## What was running
 
@@ -109,7 +109,28 @@ One UI bug showed up and was fixed in the same session: the overview painted "No
 
 `tests/kubernetes` renders the base and the local, Azure, and GCP overlays with `kubectl kustomize`. Those tests are part of the 42 passes.
 
-`docker info` failed: the Docker Desktop engine pipe was not present. `kind create cluster` and image builds were not attempted. A green manifest test does not show that a pod restarted.
+After Docker Desktop was started, this machine built `cloudsentinel-analysis:local`, `cloudsentinel-control-plane:local`, and `cloudsentinel-gateway:local`, pulled `postgres:16-alpine`, and created kind cluster `cloudsentinel`. `kind load` and `kubectl apply -k kubernetes/overlays/local` produced five Ready pods. The control-plane log shows HTTP 200 from live, ready, and analyse probes against `http://analysis-azure:8000` and `http://analysis-gcp:8000`.
+
+Pod restart, same Deployment:
+
+| | Name | UID |
+| --- | --- | --- |
+| Deleted | analysis-azure-667576c665-64l7v | 0f3587f8-d726-4248-9548-0c0d29d2b2af |
+| Replacement | analysis-azure-667576c665-rsf8v | dad5f80c-c11f-4d61-a186-ee6b54746f15 |
+
+`kubectl rollout status` reported success. `kubectl exec` against the new pod received HTTP 200 from `/health/live`. This is a local kind cluster, not AKS or GKE. kind does not enforce the NetworkPolicies.
+
+## Scans
+
+`pip-audit` (19 October 2026): `No known vulnerabilities found`. The three local packages are skipped because they are not published on PyPI.
+
+`npm audit --audit-level=high` initially failed. `braces` `<=3.0.3` has no patched release and was pulled in by Tailwind 3. The dashboard now uses Tailwind 4 and React Router 7.18.4. A following `npm audit` reported `found 0 vulnerabilities`, and `npm run build` succeeded.
+
+Trivy 0.76.0, `--severity CRITICAL --ignore-unfixed --pkg-types os,library`, exit code 0 for all three application images. The GitHub `images` workflow had pinned `aquasecurity/trivy-action@0.28.0`, which is not a published tag. It is now `v0.36.0`.
+
+## Terraform plan
+
+`terraform plan -input=false` in `azure-dev` stopped with: required variable `subscription_id` is not set. `gcp-dev` stopped the same way on `project_id`. There is no `terraform.tfvars`, no Azure CLI, and no gcloud config on this machine. No plan was produced and nothing was applied.
 
 ## Why the pieces are shaped this way
 

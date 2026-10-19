@@ -21,7 +21,7 @@ jobs:
       - name: Build image
         run: docker build -t cloudsentinel-${{ matrix.image.name }}:${{ github.sha }} ${{ matrix.image.context }}
       - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: cloudsentinel-${{ matrix.image.name }}:${{ github.sha }}
           format: table
