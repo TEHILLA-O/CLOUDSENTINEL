@@ -1,0 +1,10 @@
+subscription_id = "00000000-0000-0000-0000-000000000000"
+location        = "westeurope"
+
+# Replace this with your public IP before any apply. An empty list leaves the API public.
+api_server_authorized_cidrs = []
+
+# Optional Entra group object IDs. Non-empty disables AKS local accounts.
+admin_group_object_ids = []
+
+enable_monitoring = false

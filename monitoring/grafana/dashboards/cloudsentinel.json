@@ -1,0 +1,24 @@
+{
+  "title": "CloudSentinel",
+  "uid": "cloudsentinel",
+  "schemaVersion": 39,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Probe outcomes",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+      "targets": [
+        {
+          "expr": "sum by (environment, outcome) (rate(control_plane_probe_outcomes_total[5m]))",
+          "legendFormat": "{{environment}} {{outcome}}"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Route changes",
+      "gridPos": {"h": 4, "w": 8, "x": 0, "y": 8},
+      "targets": [{"expr": "control_plane_route_changes_total"}]
+    }
+  ]
+}

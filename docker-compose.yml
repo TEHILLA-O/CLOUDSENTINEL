@@ -1,0 +1,99 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: cloudsentinel
+      POSTGRES_PASSWORD: cloudsentinel
+      POSTGRES_DB: cloudsentinel
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cloudsentinel"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  analysis-azure:
+    build:
+      context: apps/analysis-api
+    environment:
+      ENVIRONMENT_NAME: azure-dev
+      ENVIRONMENT_PROVIDER: azure
+      ANALYSIS_BACKEND: deterministic
+      FAULT_INJECTION_ENABLED: "true"
+      FAULT_TOKEN: dev-fault-token
+    ports:
+      - "8001:8000"
+
+  analysis-gcp:
+    build:
+      context: apps/analysis-api
+    environment:
+      ENVIRONMENT_NAME: gcp-dev
+      ENVIRONMENT_PROVIDER: gcp
+      ANALYSIS_BACKEND: deterministic
+      FAULT_INJECTION_ENABLED: "true"
+      FAULT_TOKEN: dev-fault-token
+    ports:
+      - "8002:8000"
+
+  control-plane:
+    build:
+      context: apps/control-plane
+    environment:
+      DATABASE_URL: postgresql+psycopg://cloudsentinel:cloudsentinel@postgres:5432/cloudsentinel
+      ADMIN_TOKEN: dev-admin-token
+      READER_TOKEN: dev-reader-token
+      GATEWAY_TOKEN: dev-gateway-token
+      FAULT_TOKEN: dev-fault-token
+      ANALYSIS_AZURE_URL: http://analysis-azure:8000
+      ANALYSIS_GCP_URL: http://analysis-gcp:8000
+      PUBLIC_GATEWAY_URL: http://127.0.0.1:8081
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173,http://localhost:8088
+      MONITOR_ENABLED: "true"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  routing-gateway:
+    build:
+      context: apps/routing-gateway
+    environment:
+      CONTROL_PLANE_URL: http://control-plane:8000
+      GATEWAY_TOKEN: dev-gateway-token
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173,http://localhost:8088
+    ports:
+      - "8081:8080"
+    depends_on:
+      - control-plane
+
+  dashboard:
+    build:
+      context: apps/dashboard
+    ports:
+      - "8088:80"
+    depends_on:
+      - control-plane
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    profiles: ["observability"]
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    profiles: ["observability"]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"

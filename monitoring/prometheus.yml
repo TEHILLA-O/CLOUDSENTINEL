@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: analysis-azure
+    static_configs:
+      - targets: ["analysis-azure:8000"]
+  - job_name: analysis-gcp
+    static_configs:
+      - targets: ["analysis-gcp:8000"]
+  - job_name: control-plane
+    static_configs:
+      - targets: ["control-plane:8000"]
+  - job_name: routing-gateway
+    static_configs:
+      - targets: ["routing-gateway:8080"]

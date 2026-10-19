@@ -1,0 +1,31 @@
+name: images
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image:
+          - context: apps/analysis-api
+            name: analysis-api
+          - context: apps/control-plane
+            name: control-plane
+          - context: apps/routing-gateway
+            name: routing-gateway
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t cloudsentinel-${{ matrix.image.name }}:${{ github.sha }} ${{ matrix.image.context }}
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: cloudsentinel-${{ matrix.image.name }}:${{ github.sha }}
+          format: table
+          exit-code: "1"
+          severity: CRITICAL
+          ignore-unfixed: true
+          vuln-type: os,library

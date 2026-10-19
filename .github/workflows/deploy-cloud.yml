@@ -1,0 +1,34 @@
+name: deploy-cloud
+
+# This workflow does not deploy. Applying Terraform creates billable resources
+# and must be run by a person, from the environment directory, after the cost
+# review in docs/deployment/cost-and-cleanup.md.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment directory name"
+        required: true
+        type: choice
+        options:
+          - azure-dev
+          - gcp-dev
+      confirm:
+        description: "Type plan-only to run a plan. Apply is not implemented here."
+        required: true
+        type: string
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Refuse anything except an explicit plan
+        run: |
+          if [ "${{ inputs.confirm }}" != "plan-only" ]; then
+            echo "Refusing to continue. This workflow never runs terraform apply."
+            exit 1
+          fi
+          echo "Plan-only acknowledged for ${{ inputs.environment }}."
+          echo "This workflow does not run terraform plan or apply."
+          echo "Run terraform plan locally after reviewing docs/deployment/cost-and-cleanup.md."

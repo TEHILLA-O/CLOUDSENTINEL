@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: analysis-api
+  labels:
+    app.kubernetes.io/name: analysis-api
+data:
+  ANALYSIS_BACKEND: deterministic
+  FAULT_INJECTION_ENABLED: "false"
+  LOG_LEVEL: INFO

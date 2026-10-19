@@ -1,0 +1,24 @@
+name: terraform
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [azure-dev, gcp-dev]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+      - name: Format
+        run: terraform fmt -check -recursive infrastructure/terraform
+      - name: Init and validate
+        working-directory: infrastructure/terraform/environments/${{ matrix.environment }}
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate

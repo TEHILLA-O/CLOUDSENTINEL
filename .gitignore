@@ -1,0 +1,17 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.egg-info/
+.coverage
+htmlcov/
+data/
+node_modules/
+dist/
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+.DS_Store
+*.log

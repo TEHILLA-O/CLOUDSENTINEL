@@ -1,0 +1,29 @@
+name: kubernetes
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install kubectl
+        run: |
+          curl -sLo kubectl "https://dl.k8s.io/release/v1.31.4/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/kubectl
+      - name: Render overlays
+        run: |
+          kubectl kustomize kubernetes/base > /dev/null
+          kubectl kustomize kubernetes/overlays/local > /dev/null
+          kubectl kustomize kubernetes/overlays/azure > /dev/null
+          kubectl kustomize kubernetes/overlays/gcp > /dev/null
+      - name: Manifest assertions
+        run: |
+          python -m pip install pyyaml pytest
+          python -m pytest tests/kubernetes -q

@@ -1,0 +1,13 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: analysis-api
+  labels:
+    app.kubernetes.io/name: analysis-api
+spec:
+  # maxUnavailable rather than minAvailable: with one replica, minAvailable: 1
+  # would block a node drain and a cluster upgrade.
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: analysis-api

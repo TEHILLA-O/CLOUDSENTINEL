@@ -1,0 +1,8 @@
+project_id = "your-gcp-project"
+region     = "europe-west2"
+zone       = "europe-west2-a"
+
+# Replace this with your public IP before any apply.
+master_authorized_cidrs = []
+
+enable_monitoring = false
