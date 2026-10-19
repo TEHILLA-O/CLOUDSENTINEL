@@ -59,6 +59,8 @@ async def run_monitor_tick(session: AsyncSession, client: httpx.AsyncClient, pro
         previous = _snapshot(health)
         updated = apply_observation(previous, outcome, thresholds)
         _write_health(health, updated, outcome, latency_ms, status_code, detail, now, previous)
+        if outcome == "ok":
+            environment.verification = "observed"
         service = services.get(environment.id)
         session.add(
             HealthObservation(

@@ -1,19 +1,21 @@
-# ADR 0003: Local processes stand in for AKS and GKE
+# ADR 0003: Registered services, not labelled stand-ins
 
 ## Status
 
-Accepted
+Accepted. Supersedes the earlier decision to present local processes as Azure and GCP.
 
 ## Decision
 
-The default environments are two processes of the same analysis image. One is named `azure-dev` and one is named `gcp-dev`. Their `runtime` is `local_container` and their `verification` is `not_cloud_verified`.
+CloudSentinel registers two analysis services, Primary and Secondary. Their ids stay `azure-dev` and `gcp-dev` because routing history already uses those keys. The provider, region, cluster name, and runtime come from the control plane's environment configuration.
 
-Terraform can describe an AKS cluster and a GKE cluster. Those descriptions are not a deployment. The dashboard says so when the runtime is local.
+`CLUSTER_RUNTIME=kind` means the service is running in the kind cluster. The provider is `kind` until an operator sets it to `azure` or `gcp` for a cluster that is actually in that cloud. The console does not add a disclaimer that the names are fake.
+
+When cluster inventory is enabled, the control plane reads nodes and pods from the Kubernetes API with its own service account. It does not invent node counts.
 
 ## Why
 
-The failover behaviour has to be reproducible without a cloud bill. Using the same image and the same probes locally means a later cloud deployment changes the network path, not the application contract.
+Calling a local process "Azure" made the console a demonstration of a deployment that did not exist. The running system is the pair of analysis deployments, the gateway, and the probes. Cloud Terraform remains the way to add a real AKS or GKE environment later, and it is still not applied.
 
 ## Consequences
 
-A reviewer must not treat a green local test as evidence that AKS or GKE were used. That evidence would be a Terraform apply output, a `kubectl` context against the real cluster, and a request whose environment field matches that cluster. None of that exists in this repository yet.
+A green local run is evidence about this cluster, not about AKS or GKE. Fault injection stays limited to `local_container` and `kind` runtimes.

@@ -9,6 +9,7 @@ resources:
   - control-plane.yaml
   - gateway.yaml
   - networkpolicy.yaml
+  - rbac.yaml
 secretGenerator:
   - name: cloudsentinel-local
     literals:

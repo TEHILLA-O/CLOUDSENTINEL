@@ -20,7 +20,7 @@ from cloudsentinel_control.metrics import registry
 from cloudsentinel_control.reliability.monitor import run_monitor_tick
 from cloudsentinel_control.routers.http import bind
 from cloudsentinel_control.schemas import ErrorBody
-from cloudsentinel_control.seed import seed_if_empty
+from cloudsentinel_control.seed import apply_environment_config, seed_if_empty
 
 logger = logging.getLogger("cloudsentinel.control")
 
@@ -36,6 +36,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         await init_database(engine)
         async with factory() as session:
             await seed_if_empty(session, settings)
+            await apply_environment_config(session, settings)
             await session.commit()
         app.state.engine = engine
         app.state.session_factory = factory

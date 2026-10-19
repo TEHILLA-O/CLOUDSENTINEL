@@ -60,7 +60,7 @@ spec:
             - name: ENVIRONMENT_NAME
               value: azure-dev
             - name: ENVIRONMENT_PROVIDER
-              value: azure
+              value: kind
             - name: ANALYSIS_BACKEND
               value: deterministic
             - name: FAULT_INJECTION_ENABLED

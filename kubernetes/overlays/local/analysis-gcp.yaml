@@ -60,7 +60,7 @@ spec:
             - name: ENVIRONMENT_NAME
               value: gcp-dev
             - name: ENVIRONMENT_PROVIDER
-              value: gcp
+              value: kind
             - name: ANALYSIS_BACKEND
               value: deterministic
             - name: FAULT_INJECTION_ENABLED

@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from cloudsentinel_control.auth import Actor, require_admin, require_gateway, require_reader, require_routing_client
 from cloudsentinel_control.config import Settings
 from cloudsentinel_control.experiments import run_experiment
+from cloudsentinel_control.inventory import read_cluster
 from cloudsentinel_control.reliability.monitor import run_monitor_tick
 from cloudsentinel_control.models import (
     AuditEvent,
@@ -25,6 +26,7 @@ from cloudsentinel_control.models import (
 )
 from cloudsentinel_control.schemas import (
     AuditPage,
+    ClusterInventory,
     EnvironmentOut,
     EnvironmentPage,
     ExperimentOut,
@@ -73,7 +75,6 @@ def bind(settings: Settings) -> APIRouter:
             dns_failover=False,
             limitations=[
                 "The gateway is a single process. It is not global DNS failover.",
-                "Azure and GCP names on local environments are labels, not cloud deployments.",
                 "A control-plane restart resumes from the database; in-flight probes are repeated.",
             ],
         )
@@ -81,6 +82,10 @@ def bind(settings: Settings) -> APIRouter:
     @router.get("/api/v1/whoami", response_model=WhoAmI, tags=["meta"])
     async def whoami(actor: Actor = Depends(reader)):
         return WhoAmI(actor=actor.name, role=actor.role)
+
+    @router.get("/api/v1/cluster", response_model=ClusterInventory, tags=["infrastructure"])
+    async def cluster(actor: Actor = Depends(reader)):
+        return await read_cluster(settings)
 
     @router.get("/api/v1/environments", response_model=EnvironmentPage, tags=["environments"])
     async def list_environments(

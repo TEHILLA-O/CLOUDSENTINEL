@@ -38,8 +38,13 @@ async def test_reader_can_list_environments_and_admin_routes_are_protected(clien
     assert body["total"] == 2
     ids = {item["id"] for item in body["items"]}
     assert ids == {"azure-dev", "gcp-dev"}
-    assert all(item["verification"] == "not_cloud_verified" for item in body["items"])
+    assert {item["name"] for item in body["items"]} == {"Primary", "Secondary"}
+    assert all(item["provider"] == "local" for item in body["items"])
+    assert all(item["verification"] == "pending" for item in body["items"])
     assert all(item["runtime"] == "local_container" for item in body["items"])
+    cluster = await client.get("/api/v1/cluster", headers=_admin("reader-token"))
+    assert cluster.status_code == 200
+    assert cluster.json()["available"] is False
     forbidden = await client.put(
         "/api/v1/settings",
         headers=_admin("reader-token"),

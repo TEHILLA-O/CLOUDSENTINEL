@@ -36,7 +36,7 @@ spec:
         app.kubernetes.io/name: control-plane
     spec:
       serviceAccountName: control-plane
-      automountServiceAccountToken: false
+      automountServiceAccountToken: true
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -83,6 +83,24 @@ spec:
               value: http://analysis-gcp:8000
             - name: PUBLIC_GATEWAY_URL
               value: http://127.0.0.1:8081
+            - name: CLUSTER_RUNTIME
+              value: kind
+            - name: CLUSTER_NAME
+              value: cloudsentinel
+            - name: CLUSTER_INVENTORY_ENABLED
+              value: "true"
+            - name: PRIMARY_NAME
+              value: Primary
+            - name: SECONDARY_NAME
+              value: Secondary
+            - name: PRIMARY_PROVIDER
+              value: kind
+            - name: SECONDARY_PROVIDER
+              value: kind
+            - name: PRIMARY_REGION
+              value: local
+            - name: SECONDARY_REGION
+              value: local
             - name: CORS_ORIGINS
               value: http://localhost:5173,http://127.0.0.1:5173
             - name: KUBECTL_RESTART_ENABLED

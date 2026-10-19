@@ -36,7 +36,7 @@ flowchart LR
 
 The gateway is one process. It is not DNS failover. If both analysis services are ineligible, the gateway returns 503. If the control plane is briefly down, the gateway may reuse a decision for 30 seconds and then fail closed. See [docs/decisions/0002-gateway-data-plane.md](docs/decisions/0002-gateway-data-plane.md).
 
-Local environments named Azure and GCP are processes on this machine. They are not clusters. See [docs/decisions/0003-local-stand-ins.md](docs/decisions/0003-local-stand-ins.md).
+The two analysis services are Primary and Secondary. On a kind cluster their provider is `kind` and the infrastructure page reads nodes and pods from the Kubernetes API. See [docs/decisions/0003-local-stand-ins.md](docs/decisions/0003-local-stand-ins.md).
 
 ## Technologies
 

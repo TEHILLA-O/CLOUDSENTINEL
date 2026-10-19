@@ -200,6 +200,24 @@ class MetricsSummary(BaseModel):
     measurement: str
 
 
+class PodInventory(BaseModel):
+    name: str
+    phase: str
+    ready: bool
+    node: str | None
+    app: str | None
+
+
+class ClusterInventory(BaseModel):
+    available: bool
+    cluster_name: str
+    kubernetes_version: str | None = None
+    node_count: int = 0
+    ready_node_count: int = 0
+    pods: list[PodInventory] = []
+    detail: str | None = None
+
+
 class MetaOut(BaseModel):
     product: str
     version: str

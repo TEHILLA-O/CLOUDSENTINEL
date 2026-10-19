@@ -1,3 +1,21 @@
+export interface PodInventory {
+  name: string;
+  phase: string;
+  ready: boolean;
+  node: string | null;
+  app: string | null;
+}
+
+export interface ClusterInventory {
+  available: boolean;
+  cluster_name: string;
+  kubernetes_version: string | null;
+  node_count: number;
+  ready_node_count: number;
+  pods: PodInventory[];
+  detail: string | null;
+}
+
 export interface Environment {
   id: string;
   name: string;

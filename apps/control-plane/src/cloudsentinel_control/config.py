@@ -24,6 +24,17 @@ class Settings(BaseSettings):
     # JSON object of environment id -> deployment name. User input never becomes a shell string.
     kubectl_restart_map: str = "{}"
     allow_cloud_experiments: bool = False
+    # Operator identity for the two analysis services. Provider stays "local"
+    # until the process is actually registered in that cloud.
+    cluster_runtime: str = "local_container"
+    cluster_name: str = ""
+    cluster_inventory_enabled: bool = False
+    primary_name: str = "Primary"
+    secondary_name: str = "Secondary"
+    primary_provider: str = "local"
+    secondary_provider: str = "local"
+    primary_region: str = "local"
+    secondary_region: str = "local"
 
     @property
     def cors_origin_list(self) -> list[str]:

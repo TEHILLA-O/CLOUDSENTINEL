@@ -5,43 +5,67 @@ from cloudsentinel_control.config import Settings
 from cloudsentinel_control.models import Environment, EnvironmentHealth, RoutingState, RuntimeSettings, Service
 
 
+def environment_specs(settings: Settings) -> list[dict]:
+    cluster_name = settings.cluster_name or "local"
+    return [
+        {
+            "id": "azure-dev",
+            "name": settings.primary_name,
+            "provider": settings.primary_provider,
+            "region": settings.primary_region,
+            "cluster_name": cluster_name,
+            "base_url": settings.analysis_azure_url,
+            "role": "preferred",
+            "runtime": settings.cluster_runtime,
+            "notes": "",
+        },
+        {
+            "id": "gcp-dev",
+            "name": settings.secondary_name,
+            "provider": settings.secondary_provider,
+            "region": settings.secondary_region,
+            "cluster_name": cluster_name,
+            "base_url": settings.analysis_gcp_url,
+            "role": "secondary",
+            "runtime": settings.cluster_runtime,
+            "notes": "",
+        },
+    ]
+
+
+async def apply_environment_config(session: AsyncSession, settings: Settings) -> None:
+    """Keep registered services aligned with the process configuration.
+
+    The database is created once. Later changes to names, provider, and cluster
+    identity have to be applied on startup or the console keeps the first seed forever.
+    Health history is left alone.
+    """
+    for spec in environment_specs(settings):
+        row = await session.get(Environment, spec["id"])
+        if row is None:
+            continue
+        row.name = spec["name"]
+        row.provider = spec["provider"]
+        row.region = spec["region"]
+        row.cluster_name = spec["cluster_name"]
+        row.base_url = spec["base_url"]
+        row.runtime = spec["runtime"]
+        row.notes = spec["notes"]
+        if row.verification == "not_cloud_verified":
+            row.verification = "pending"
+
+
 async def seed_if_empty(session: AsyncSession, settings: Settings) -> None:
     count = await session.scalar(select(func.count()).select_from(Environment))
     if count:
         return
 
-    # These rows are local stand-ins. The provider field says which cloud the
-    # process represents. verification stays not_cloud_verified until someone
-    # actually deploys the same image to that cloud.
-    specs = [
-        {
-            "id": "azure-dev",
-            "name": "Azure stand-in",
-            "provider": "azure",
-            "region": "westeurope",
-            "cluster_name": "not-provisioned",
-            "base_url": settings.analysis_azure_url,
-            "role": "preferred",
-            "runtime": "local_container",
-            "notes": "Local process labelled as the Azure AKS environment. Not an AKS cluster.",
-        },
-        {
-            "id": "gcp-dev",
-            "name": "GCP stand-in",
-            "provider": "gcp",
-            "region": "europe-west2",
-            "cluster_name": "not-provisioned",
-            "base_url": settings.analysis_gcp_url,
-            "role": "secondary",
-            "runtime": "local_container",
-            "notes": "Local process labelled as the GKE environment. Not a GKE cluster.",
-        },
-    ]
+    specs = environment_specs(settings)
     for spec in specs:
         session.add(
             Environment(
                 kubernetes_version=None,
-                verification="not_cloud_verified",
+                verification="pending",
                 experiments_allowed=True,
                 enabled=True,
                 **spec,

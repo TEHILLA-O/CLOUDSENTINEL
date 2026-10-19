@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api } from "../api";
-import { Banner, Empty, ErrorText, Loading, Metric, Panel, StatusPill } from "../components/ui";
+import { Empty, ErrorText, Loading, Metric, Panel, StatusPill } from "../components/ui";
 import type { Environment, Incident, Meta, MetricsSummary, Page, Routing } from "../types";
 
 export function OverviewPage() {
@@ -36,7 +36,6 @@ export function OverviewPage() {
     return <ErrorText error={environments.error || routing.error || metrics.error} />;
   }
   const envs = environments.data?.items ?? [];
-  const localStandIn = envs.some((item) => item.runtime === "local_container" || item.runtime === "kind");
   const summary = metrics.data;
 
   return (
@@ -45,11 +44,6 @@ export function OverviewPage() {
         <h1 className="text-xl font-semibold">Overview</h1>
         <p className="mt-1 text-sm text-muted">Live control-plane state. Numbers come from recorded probes and gateway samples.</p>
       </header>
-      {localStandIn ? (
-        <Banner>
-          These environments are local stand-ins labelled Azure and GCP. They are not AKS or GKE clusters, and nothing here is cloud-verified.
-        </Banner>
-      ) : null}
       <div className="grid gap-3 md:grid-cols-4">
         <Metric label="Active route" value={routing.data?.active_environment_id ?? "none"} hint={routing.data?.reason} />
         <Metric label="Preferred" value={routing.data?.preferred_environment_id ?? "unset"} hint={routing.data?.mode} />

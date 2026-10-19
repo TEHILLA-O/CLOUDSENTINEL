@@ -121,7 +121,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(
         title="CloudSentinel Analysis API",
         version=__version__,
-        summary="Document and text analysis workload used to demonstrate multi-cloud recovery.",
+        summary="Document and text analysis API.",
         lifespan=lifespan,
     )
     app.state.settings = settings
