@@ -1,5 +1,7 @@
 # CloudSentinel
 
+A portfolio project for platform and reliability engineers: a control plane that watches two copies of a text analysis API and moves traffic to the healthy one, with an incident trail.
+
 CloudSentinel is a control centre for a containerised text-analysis service that can run in more than one place. When the copy that is supposed to serve traffic becomes unhealthy, the system records the failure, checks the other copy, and sends new requests there.
 
 The engineering problem is operational, not cosmetic: detect a bad dependency, do not flap, and leave an incident trail that a person can read.
@@ -62,6 +64,28 @@ $env:ENVIRONMENT_NAME = "azure-dev"
 $env:ENVIRONMENT_PROVIDER = "azure"
 .\.venv\Scripts\python -m uvicorn analysis_api.main:app --port 8001
 ```
+
+On Linux or macOS the same four processes look like this (run each in its own terminal from the repo root):
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/pip install -e "apps/analysis-api[test]" -e "apps/control-plane[test]" -e "apps/routing-gateway"
+export FAULT_INJECTION_ENABLED=true FAULT_TOKEN=dev-fault-token
+
+ENVIRONMENT_NAME=azure-dev ENVIRONMENT_PROVIDER=azure .venv/bin/python -m uvicorn analysis_api.main:app --port 8001
+ENVIRONMENT_NAME=gcp-dev ENVIRONMENT_PROVIDER=gcp .venv/bin/python -m uvicorn analysis_api.main:app --port 8002
+
+mkdir -p data
+ADMIN_TOKEN=dev-admin-token READER_TOKEN=dev-reader-token GATEWAY_TOKEN=dev-gateway-token \
+ANALYSIS_AZURE_URL=http://127.0.0.1:8001 ANALYSIS_GCP_URL=http://127.0.0.1:8002 \
+DATABASE_URL=sqlite+aiosqlite:///./data/control-plane.db \
+.venv/bin/python -m uvicorn cloudsentinel_control.main:app --port 8000
+
+CONTROL_PLANE_URL=http://127.0.0.1:8000 GATEWAY_TOKEN=dev-gateway-token \
+.venv/bin/python -m uvicorn cloudsentinel_gateway.main:app --port 8081
+```
+
+The PowerShell version continues below. `scripts/start-local.ps1` opens all four windows for you on Windows.
 
 In a second terminal, set `ENVIRONMENT_NAME=gcp-dev`, `ENVIRONMENT_PROVIDER=gcp`, and `--port 8002`.
 
@@ -126,6 +150,29 @@ npm run build
 
 Details and the measured failover number are in [docs/testing/how-to-test.md](docs/testing/how-to-test.md).
 
+### Verified run (1 November 2026, Linux, Python 3.12, Node 20)
+
+| Check | Result |
+| --- | --- |
+| `pytest -q` | 42 passed in 12.8 s. The 3 manifest tests need `kubectl` on the PATH; without it they fail |
+| `ruff check` (default rules) | 3 findings: an unused import, an unused variable, and an undefined name (see below) |
+| Dashboard `npm run typecheck` and `npm run build` | pass |
+| Four processes on bash, request through the gateway | answered by `azure-dev`, `backend: deterministic` |
+| `errors` fault injected on `azure-dev` | the first gateway request answered by `gcp-dev` came 16 s after the fault (polled every 2 s); the stored incident shows `detection_seconds` 10.045 |
+| CI (7 workflows) | last runs on 19 October 2026 all green |
+
+Known bug found in that run: `GET /api/v1/audit-events` returns 500 once any audit row exists, because `AuditOut` is not imported in `routers/http.py` (ruff F821). The dashboard does not call that endpoint, so the console still works. It is not fixed yet.
+
+Sample response from the gateway:
+
+```json
+{"summary":"The reliable cluster recovered after the failure. Sentiment is neutral. Leading terms: cluster, recovered.","sentiment":{"label":"neutral","score":0.0},"keywords":[{"term":"cluster","score":1.0},{"term":"recovered","score":1.0}],"backend":"deterministic","environment":"azure-dev","provider":"azure"}
+```
+
+## Configuration
+
+All settings are environment variables. `.env.example` lists them: the four tokens (`ADMIN_TOKEN`, `READER_TOKEN`, `GATEWAY_TOKEN`, `FAULT_TOKEN`), `DATABASE_URL`, the two analysis URLs, `PUBLIC_GATEWAY_URL`, `CONTROL_PLANE_URL`, `FAULT_INJECTION_ENABLED` and `MONITOR_ENABLED`. Probe thresholds, cooldown and the preferred environment are runtime settings, changed through `PUT /api/v1/settings` or the dashboard. Their defaults are a 5 second interval, 3 failures to move, 2 successes to be eligible, and a 30 second cooldown.
+
 ## Terraform
 
 Modules live in `infrastructure/terraform/modules`. Environments are `azure-dev` and `gcp-dev`. They use the local backend. Remote state is described in [docs/deployment/remote-state.md](docs/deployment/remote-state.md) and is not configured, so this repository cannot accidentally write to an existing state bucket.
@@ -187,6 +234,8 @@ See [docs/security/threat-model.md](docs/security/threat-model.md). Short versio
 - Schema changes are applied with `create_all` at startup. That is acceptable while this is one operator and one database. It is not a migration tool. Add Alembic before the first production schema change.
 - OpenTelemetry is not running. Request IDs are.
 
+- `GET /api/v1/audit-events` is broken (see Verified run).
+
 ## Possible later work
 
 OIDC for users, a managed database, a second gateway, and a real AKS or GKE deployment after a budget alert exists. Those are planned. They are not done.
@@ -194,3 +243,13 @@ OIDC for users, a managed database, a second gateway, and a real AKS or GKE depl
 ## Evidence
 
 Interview notes and the commands that were actually run are in [docs/evidence/engineering-evidence.md](docs/evidence/engineering-evidence.md).
+
+## Status
+
+A working local system with tests and CI. It has not been deployed to Azure or GCP, and nobody runs it in production. Latency and failover numbers above are single local runs, not benchmarks.
+
+## Licence
+
+No licence file yet, so all rights are reserved by default.
+
+More of my work: https://cv.omnitest.dev/
